@@ -1,0 +1,99 @@
+div#map
+ul#log
+
+script
+  (function($){
+    var Cell = Backbone.Model.extend({
+      id: null,
+      symbol: null
+    })
+
+    var Log = Backbone.Model.extend({
+      id: null,
+      text: null,
+      timestamp: null
+    })
+
+    var Logs = Backbone.Collection.extend({
+      initialize: function(models, options) {
+        this.bind('add', options.view.addLog)
+        this.bind('remove', options.view.removeLog)
+
+        this.bind('add', function() {
+          console.log(this.length)
+          if (this.length > 7) {
+            console.log('removing')
+            this.remove(this.at(0))
+          }
+        })
+      }
+    })
+
+    var Cells = Backbone.Collection.extend({
+      initialize: function(models, options) {
+        this.bind('removeAll', options.view.removeAllCells)
+        this.bind('setCells', options.view.setCells)
+      }
+    })
+
+    var GameView = Backbone.View.extend({
+      el: $('body'),
+
+      initialize: function() {
+        this.logs = new Logs(null, { view: this })
+        this.cells = new Cells(null, { view: this })
+      },
+
+      events: {
+      },
+
+      addLog: function(model) {
+        $('#log').append($('<li id="log-' + model.get('id') + '">').html(model.get('text')))
+      },
+
+      removeLog: function(model) {
+        $('#log').find('#log-' + model.get('id')).remove()
+      },
+
+      removeAllCells: function() {
+
+      },
+
+      setCells: function(models) {
+
+      }
+    })
+
+    window.gameView = new GameView
+
+    var socket = io.connect('http://localhost')
+
+    socket.on('view', function(view) {
+      for (var idx in view.log) {
+        var data = view.log[idx]
+
+        var log = new Log({ id: data.id, text: data.text, ts: data.ts })
+
+        gameView.logs.add(log)
+      }
+    })
+  })(jQuery)
+
+  /*
+  $(function(){
+    socket.on('view', function(view) {
+      console.log(view)
+
+      $log.html(view.log.join('\\n'))
+
+      $map.html(_(view.cells).reduce(function(memo, c, key){
+        var x = key % view.width
+          , y = Math.floor(key / view.width)
+
+        return (memo && x == 0)
+          ? memo + $('div', { style: 'clear: both;' }) + $('span').html('c')
+          : memo + $('span').html('c')
+      }))
+    })
+  })
+  */
