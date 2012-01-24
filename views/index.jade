@@ -1,3 +1,24 @@
+style
+  .cell {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: #999;
+    line-height: 10px;
+    padding: 0px;
+    margin: 0px;
+    font-size: 12px;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  #map {
+    position: relative;
+    border: 1px solid #000;
+    width: 1536px;
+    height: 512px;
+  }
+
 div#map
 ul#log
 
@@ -5,7 +26,9 @@ script
   (function($){
     var Cell = Backbone.Model.extend({
       id: null,
-      symbol: null
+      symbol: null,
+      x: null,
+      y: null
     })
 
     var Log = Backbone.Model.extend({
@@ -19,10 +42,8 @@ script
         this.bind('add', options.view.addLog)
         this.bind('remove', options.view.removeLog)
 
-        this.bind('add', function() {
-          console.log(this.length)
+        this.bind('add', function(model) {
           if (this.length > 7) {
-            console.log('removing')
             this.remove(this.at(0))
           }
         })
@@ -31,8 +52,8 @@ script
 
     var Cells = Backbone.Collection.extend({
       initialize: function(models, options) {
-        this.bind('removeAll', options.view.removeAllCells)
-        this.bind('setCells', options.view.setCells)
+        this.bind('reset', options.view.resetCells)
+        this.bind('add', options.view.addCell)
       }
     })
 
@@ -48,19 +69,29 @@ script
       },
 
       addLog: function(model) {
-        $('#log').append($('<li id="log-' + model.get('id') + '">').html(model.get('text')))
+        $('#log').append($('<li data-id="' + model.get('id') + '">').
+            html(Date.create(model.get('ts')).format('{12hr}:{mm}{tt}') + ': ' + model.get('text')))
       },
 
       removeLog: function(model) {
-        $('#log').find('#log-' + model.get('id')).remove()
+        $('#log').find('li[data-id="' + model.get('id') + '"]').remove()
       },
 
-      removeAllCells: function() {
-
+      resetCells: function() {
+        $('#map').empty()
       },
 
-      setCells: function(models) {
+      addCell: function(model) {
+        var $cell = $('<div>', {
+          'data-id': model.get('id'),
+          'data-x': model.get('x'),
+          'data-y': model.get('y'),
+          'class': 'cell',
+          'style': 'left: ' + parseInt(model.get('x')) * 12 + 'px;' +
+                   'top: ' + parseInt(model.get('y')) * 12 + 'px;'
+        }).html(model.get('symbol'))
 
+        $('#map').append($cell)
       }
     })
 
@@ -69,31 +100,29 @@ script
     var socket = io.connect('http://localhost')
 
     socket.on('view', function(view) {
+      window.frame = view
+
       for (var idx in view.log) {
         var data = view.log[idx]
 
-        var log = new Log({ id: data.id, text: data.text, ts: data.ts })
+        var log = new Log(data)
 
         gameView.logs.add(log)
       }
+
+      gameView.cells.reset()
+
+      for (var y = 0; y < view.height; y++) {
+        for (var x = 0; x < view.width; x++) {
+          var data = view.cells[y * view.width + x]
+
+          data.x = x
+          data.y = y
+
+          var cell = new Cell(data)
+
+          gameView.cells.add(cell)
+        }
+      }
     })
   })(jQuery)
-
-  /*
-  $(function(){
-    socket.on('view', function(view) {
-      console.log(view)
-
-      $log.html(view.log.join('\\n'))
-
-      $map.html(_(view.cells).reduce(function(memo, c, key){
-        var x = key % view.width
-          , y = Math.floor(key / view.width)
-
-        return (memo && x == 0)
-          ? memo + $('div', { style: 'clear: both;' }) + $('span').html('c')
-          : memo + $('span').html('c')
-      }))
-    })
-  })
-  */
