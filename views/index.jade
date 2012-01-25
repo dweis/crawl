@@ -1,4 +1,5 @@
 style
+  body { margin: 0; }
   #cr-stage { border-left-width:0; border-top-width:0; background-color: #111; }
 
 script
@@ -106,9 +107,11 @@ script
 
     Crafty.c('Skeleton', {
         init: function() {
-            this.addComponent('2D, Canvas, player, skeleton');
+            this.addComponent('2D, Canvas, Multiway, skeleton');
             this.w = 32;
             this.h = 32;
+
+            this.multiway(3, {UP_ARROW: -90, DOWN_ARROW: 90, RIGHT_ARROW: 0, LEFT_ARROW: 180});
         },
 
         create: function(x, y) {
@@ -116,9 +119,5 @@ script
         }
     });
 
-    Crafty.e('Skeleton').create(160, 96);
-    Crafty.e('Skeleton').create(240, 96);
-    Crafty.e('Skeleton').create(320, 96);
-    Crafty.e('Skeleton').create(400, 96);
-    Crafty.e('Skeleton').create(480, 96);
+    Crafty.e('Skeleton').create((viewportWidth / 2) - 16, (viewportHeight / 2) - 16);
   })(jQuery)
