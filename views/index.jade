@@ -1,4 +1,9 @@
+script(src='/javascripts/melonJS-0.9.2.js')
 style
+  #log {
+    display: none;
+  }
+
   .cell {
     position: absolute;
     width: 10px;
@@ -15,15 +20,71 @@ style
   #map {
     position: relative;
     border: 1px solid #000;
-    width: 1536px;
+    width: 768px;
     height: 512px;
+    background-color: #333;
+    overflow: hidden;
+    display: none;
+  }
+
+  #jsapp {
   }
 
 div#map
 ul#log
+#jsapp
 
 script
   (function($){
+    var g_resources = [{ name: 'spr_sheet_01'
+                       , src: '/assets/sprites/sheets/spr_sheet_01.png'
+                       , type: 'image' }]
+
+    var viewportWidth = 48
+      , viewportHeight = 32
+      , tileWidth = 16
+      , tileHeight = 16
+
+    var jsApp = {
+      onload: function() {
+        if (!me.video.init('jsapp', viewportWidth * tileWidth, viewportHeight * tileHeight, false, 1.0)) {
+          alert('sorry, your browser doesnt support html 5 canvas.')
+          return
+        }
+
+        me.audio.init('mp3,ogg')
+        me.loader.onload = this.loaded.bind(this)
+        me.loader.preload(g_resources)
+        me.state.change(me.state.LOADING)
+      }
+    , loaded: function() {
+        me.state.set(me.state.PLAY, new PlayScreen())
+
+        me.entityPool.add('player', PlayerEntity)
+
+        me.state.change(me.state.PLAY)
+      }
+    }
+
+    var PlayerEntity = me.ObjectEntity.extend({
+      init: function(x, y, settings) {
+        this.parent(x, y, settings)
+
+        me.game.viewport.follow(this.pos, me.game.viewport.AXIS.BOTH)
+      }
+    , update: function() {
+
+      }
+    })
+
+    var PlayScreen = me.ScreenObject.extend({
+      onResetEvent: function() {
+
+      }
+    , onDestroyEvent: function() {
+      }
+    })
+
     var Cell = Backbone.Model.extend({
       id: null,
       symbol: null,
@@ -121,8 +182,14 @@ script
 
           var cell = new Cell(data)
 
+          if (typeof data.symbol == 'undefined') {
+            data.symbol = '&nbsp;'
+          }
+
           gameView.cells.add(cell)
         }
       }
     })
+
+    jsApp.onload()
   })(jQuery)

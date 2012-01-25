@@ -3,14 +3,15 @@
     , monsterData = require('./data/monsters')
     , itemData = require('./data/items')
     , worldFactory = require('./lib/world').factory
+    , playerFactory = require('./lib/player').factory
     , app = express.createServer()
     , io = require('socket.io').listen(app)
 
   io.set('log level', 1)
 
   var crawl = (function(){
-    var mapWidth = 96
-      , mapHeight = 32
+    var mapWidth = 100
+      , mapHeight = 100
       , numMonsters = 100
       , world = worldFactory(mapWidth, mapHeight, numMonsters, { monsters: monsterData
                                                                , items: itemData })
@@ -20,8 +21,10 @@
     }, 500)
 
     io.sockets.on('connection', function (socket) {
+      var player = playerFactory(mapWidth/2, mapHeight/2, 5)
+
       var renderTimer = setInterval(function() {
-        socket.emit('view', world.getView())
+        socket.emit('view', world.getView(player))
       }, 1000)
     })
   })()
