@@ -4,78 +4,14 @@ style
 
 script
   (function($){
-    var viewportWidth = 24 * 32
-      , viewportHeight = 16 * 32
-      , tileWidth = 32
-      , tileHeight = 32
+    var viewportWidth = 24 // in cells(meters)
+      , viewportHeight = 16 // in cells(meters)
+      , tileWidth = 32 // in pixels
+      , tileHeight = 32 // in pixels
+      , mapWidth = 100
+      , mapHeight = 100
 
-    var Cell = Backbone.Model.extend({
-      id: null,
-      symbol: null,
-      x: null,
-      y: null
-    })
-
-    var Log = Backbone.Model.extend({
-      id: null,
-      text: null,
-      timestamp: null
-    })
-
-    var Logs = Backbone.Collection.extend({
-      initialize: function(models, options) {
-        //this.bind('add', function(model) {
-        //  if (this.length > 7) {
-        //    this.remove(this.at(0))
-        //  }
-        //})
-      }
-    })
-
-    var Cells = Backbone.Collection.extend({
-      initialize: function(models, options) {
-      }
-    })
-
-    var GameView = Backbone.View.extend({
-    })
-
-    window.gameView = new GameView
-
-    var socket = io.connect('http://localhost')
-
-    socket.on('view', function(view) {
-      window.frame = view
-
-      for (var idx in view.log) {
-        var data = view.log[idx]
-
-        var log = new Log(data)
-
-        gameView.logs.add(log)
-      }
-
-      gameView.cells.reset()
-
-      for (var y = 0; y < view.height; y++) {
-        for (var x = 0; x < view.width; x++) {
-          var data = view.cells[y * view.width + x]
-
-          data.x = x
-          data.y = y
-
-          var cell = new Cell(data)
-
-          if (typeof data.symbol == 'undefined') {
-            data.symbol = '&nbsp;'
-          }
-
-          gameView.cells.add(cell)
-        }
-      }
-    })
-
-    Crafty.init(viewportWidth, viewportHeight);
+    Crafty.init(viewportWidth * tileWidth, viewportHeight * tileHeight);
 
     Crafty.sprite(32, 'assets/tiles/grass-tiles-2-small.png', {
         grass0: [0, 0]
@@ -89,13 +25,12 @@ script
       , grass8: [0, 3]
       , grass9: [0, 4] })
 
-    for (var y = 0; y < 24; y++)
-      for (var x = 0; x < 32; x++) {
-        var tile = Crafty.e()
+    var tiles = []
 
-        tile.addComponent('2D, Canvas, grass' + + Crafty.randRange(0,5))
-
-        tile.attr({ x: x * 32, y: y * 32, w: 32, h: 32 })
+    for (var y = 0; y < mapHeight; y++)
+      for (var x = 0; x < mapWidth; x++) {
+        tiles[y * mapWidth + x] = Crafty.e('2D, Canvas, grass' + Crafty.randRange(0,5)).
+            attr({ x: x * tileWidth, y: y * tileHeight, w: tileWidth, h: tileHeight })
       }
 
     Crafty.sprite(30, 'assets/sprites/sheets/spr_sheet_01.png', {
@@ -105,19 +40,41 @@ script
       , goblin: [18, 1]
       , mole: [10, 1] })
 
-    Crafty.c('Skeleton', {
-        init: function() {
-            this.addComponent('2D, Canvas, Multiway, skeleton');
-            this.w = 32;
-            this.h = 32;
+    var player = Crafty.e('2D, Canvas, skeleton').
+          attr({ x: viewportWidth / 2 * tileWidth
+               , y: viewportHeight / 2 * tileHeight
+               , w: tileWidth
+               , h: tileHeight})
 
-            this.multiway(3, {UP_ARROW: -90, DOWN_ARROW: 90, RIGHT_ARROW: 0, LEFT_ARROW: 180});
-        },
+    var socket = io.connect('http://localhost')
 
-        create: function(x, y) {
-            this.attr({ x: x, y: y});
+    var currentX = -1, currentY = -1
+
+    socket.on('view', function(view) {
+      if (view.x != currentX || view.y != currentY) {
+        var offsetX = -(view.x * tileWidth),
+            offsetY = -(view.y * tileWidth)
+
+        console.log(view.x, view.y, offsetX, offsetY);
+
+        for (var y = 0; y < mapHeight; y++)
+          for (var x = 0; x < mapWidth; x++)
+            tiles[y * mapWidth + x].
+                attr({ x: x * tileWidth + offsetX
+                     , y: y * tileHeight + offsetY })
+      }
+
+      for (var y = 0; y < view.height; y++) {
+        for (var x = 0; x < view.width; x++) {
+          var data = view.cells[y * view.width + x]
+          data.x = x
+          data.y = y
+
+          if (typeof data.symbol != 'undefined') {
+            console.log(data)
+          }
         }
-    });
+      }
+    })
 
-    Crafty.e('Skeleton').create((viewportWidth / 2) - 16, (viewportHeight / 2) - 16);
   })(jQuery)
