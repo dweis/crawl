@@ -23,11 +23,11 @@ script
 
     var Logs = Backbone.Collection.extend({
       initialize: function(models, options) {
-        this.bind('add', function(model) {
-          if (this.length > 7) {
-            this.remove(this.at(0))
-          }
-        })
+        //this.bind('add', function(model) {
+        //  if (this.length > 7) {
+        //    this.remove(this.at(0))
+        //  }
+        //})
       }
     })
 
@@ -76,28 +76,49 @@ script
 
     Crafty.init(viewportWidth, viewportHeight);
 
-    Crafty.sprite(30, "assets/sprites/sheets/spr_sheet_01.png  ", {
+    Crafty.sprite(32, 'assets/tiles/grass-tiles-2-small.png', {
+        grass0: [0, 0]
+      , grass1: [1, 0]
+      , grass2: [2, 0]
+      , grass3: [3, 0]
+      , grass4: [4, 0]
+      , grass5: [5, 0]
+      , grass6: [0, 1]
+      , grass7: [0, 2]
+      , grass8: [0, 3]
+      , grass9: [0, 4] })
+
+    for (var y = 0; y < 24; y++)
+      for (var x = 0; x < 32; x++) {
+        var tile = Crafty.e()
+
+        tile.addComponent('2D, Canvas, grass' + + Crafty.randRange(0,5))
+
+        tile.attr({ x: x * 32, y: y * 32, w: 32, h: 32 })
+      }
+
+    Crafty.sprite(30, 'assets/sprites/sheets/spr_sheet_01.png', {
         skeleton: [8, 2]
       , ogre: [17, 4]
       , dragon: [9, 10]
       , goblin: [18, 1]
-      , mole: [10, 1] });
+      , mole: [10, 1] })
 
-    Crafty.c("Skeleton", {
+    Crafty.c('Skeleton', {
         init: function() {
-            this.addComponent("2D, Canvas, skeleton");
+            this.addComponent('2D, Canvas, player, skeleton');
             this.w = 32;
             this.h = 32;
         },
 
         create: function(x, y) {
-            this.attr({ x: x, y: y });
+            this.attr({ x: x, y: y});
         }
     });
 
-    Crafty.e("Skeleton").create(160, 96);
-    Crafty.e("Skeleton").create(240, 96);
-    Crafty.e("Skeleton").create(320, 96);
-    Crafty.e("Skeleton").create(400, 96);
-    Crafty.e("Skeleton").create(480, 96);
+    Crafty.e('Skeleton').create(160, 96);
+    Crafty.e('Skeleton').create(240, 96);
+    Crafty.e('Skeleton').create(320, 96);
+    Crafty.e('Skeleton').create(400, 96);
+    Crafty.e('Skeleton').create(480, 96);
   })(jQuery)
