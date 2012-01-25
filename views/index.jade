@@ -1,89 +1,12 @@
-script(src='/javascripts/melonJS-0.9.2.js')
 style
-  #log {
-    display: none;
-  }
-
-  .cell {
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    background-color: #999;
-    line-height: 10px;
-    padding: 0px;
-    margin: 0px;
-    font-size: 12px;
-    text-align: center;
-    vertical-align: middle;
-  }
-
-  #map {
-    position: relative;
-    border: 1px solid #000;
-    width: 768px;
-    height: 512px;
-    background-color: #333;
-    overflow: hidden;
-    display: none;
-  }
-
-  #jsapp {
-  }
-
-div#map
-ul#log
-#jsapp
+  #cr-stage { border-left-width:0; border-top-width:0; background-color: #111; }
 
 script
   (function($){
-    var g_resources = [{ name: 'spr_sheet_01'
-                       , src: '/assets/sprites/sheets/spr_sheet_01.png'
-                       , type: 'image' }]
-
-    var viewportWidth = 48
-      , viewportHeight = 32
+    var viewportWidth = 48 * 16
+      , viewportHeight = 32 * 16
       , tileWidth = 16
       , tileHeight = 16
-
-    var jsApp = {
-      onload: function() {
-        if (!me.video.init('jsapp', viewportWidth * tileWidth, viewportHeight * tileHeight, false, 1.0)) {
-          alert('sorry, your browser doesnt support html 5 canvas.')
-          return
-        }
-
-        me.audio.init('mp3,ogg')
-        me.loader.onload = this.loaded.bind(this)
-        me.loader.preload(g_resources)
-        me.state.change(me.state.LOADING)
-      }
-    , loaded: function() {
-        me.state.set(me.state.PLAY, new PlayScreen())
-
-        me.entityPool.add('player', PlayerEntity)
-
-        me.state.change(me.state.PLAY)
-      }
-    }
-
-    var PlayerEntity = me.ObjectEntity.extend({
-      init: function(x, y, settings) {
-        this.parent(x, y, settings)
-
-        me.game.viewport.follow(this.pos, me.game.viewport.AXIS.BOTH)
-      }
-    , update: function() {
-
-      }
-    })
-
-    var PlayScreen = me.ScreenObject.extend({
-      onResetEvent: function() {
-
-      }
-    , onDestroyEvent: function() {
-      }
-    })
 
     var Cell = Backbone.Model.extend({
       id: null,
@@ -100,9 +23,6 @@ script
 
     var Logs = Backbone.Collection.extend({
       initialize: function(models, options) {
-        this.bind('add', options.view.addLog)
-        this.bind('remove', options.view.removeLog)
-
         this.bind('add', function(model) {
           if (this.length > 7) {
             this.remove(this.at(0))
@@ -113,47 +33,10 @@ script
 
     var Cells = Backbone.Collection.extend({
       initialize: function(models, options) {
-        this.bind('reset', options.view.resetCells)
-        this.bind('add', options.view.addCell)
       }
     })
 
     var GameView = Backbone.View.extend({
-      el: $('body'),
-
-      initialize: function() {
-        this.logs = new Logs(null, { view: this })
-        this.cells = new Cells(null, { view: this })
-      },
-
-      events: {
-      },
-
-      addLog: function(model) {
-        $('#log').append($('<li data-id="' + model.get('id') + '">').
-            html(Date.create(model.get('ts')).format('{12hr}:{mm}{tt}') + ': ' + model.get('text')))
-      },
-
-      removeLog: function(model) {
-        $('#log').find('li[data-id="' + model.get('id') + '"]').remove()
-      },
-
-      resetCells: function() {
-        $('#map').empty()
-      },
-
-      addCell: function(model) {
-        var $cell = $('<div>', {
-          'data-id': model.get('id'),
-          'data-x': model.get('x'),
-          'data-y': model.get('y'),
-          'class': 'cell',
-          'style': 'left: ' + parseInt(model.get('x')) * 12 + 'px;' +
-                   'top: ' + parseInt(model.get('y')) * 12 + 'px;'
-        }).html(model.get('symbol'))
-
-        $('#map').append($cell)
-      }
     })
 
     window.gameView = new GameView
@@ -191,5 +74,69 @@ script
       }
     })
 
-    jsApp.onload()
+    var WIDTH = 800,
+        HEIGHT = 640;
+    Crafty.init(WIDTH, HEIGHT);
+
+    /*
+     * Create Sprites of size 32 from the PNG file.
+     * There is only one Sprite in the file. It is mostly transparent
+     * so the background color will shine through it.
+     */
+    Crafty.sprite(16, "assets/sprites/sheets/spr_sheet_01.png  ", { crate: [0, 0]});
+
+    /**
+     * This is a simple component, a Box, which again gets capabilities from these
+     * other components:
+     *  - 2D, Canvas: can be drawn on a Canvas
+     *  - Color: has a Background Color
+     *  - Fourway: can be moved with WASD and arrow keys
+     *  - Mouse: reacts on mouse events, like click
+     *  - Tween: simple animation, used here for fading out after mouse click
+     *  - crate: That's the Sprite defined above, not really a JS component
+     */
+    Crafty.c("Box", {
+        init: function() {
+            this.addComponent("2D, Canvas, Color, Fourway, Mouse, Tween, crate");
+
+            this.w = 32;    // width
+            this.h = 32;    // height
+            this.fourway(10);   // initalize 4-way movement
+
+            /*
+             * An 'enterframe' event is created by Crafty for every frame that is
+             * created. Components should update their status in the phase.
+             * Here we check if the alpha gradient is < 0.1, in which case the
+             * entity gets destroyed.
+             * The alpha value gets changed by the Tween component.
+             */
+            this.bind("EnterFrame", function(e) {
+                if (this._alpha < 0.1) {
+                    this.destroy();
+                }
+            });
+            /*
+             * This defines the handler method for mouse clicks.
+             * Here we tell the entity to gradually change its alpha gradient to 0.0.
+             * This is done with the Tween component and it takes 50 frames from 1.0 to 0.0.
+             */
+            this.bind("Click", function(e) {
+                console.log(arguments);
+                this.tween({alpha: 0.0}, 50);
+            });
+        },
+        /**
+         * Convenience method which sets the box position and color
+         */
+        makeBox: function(x, y, color) {
+            this.attr({x: x, y: y}).color(color);
+        }
+    });
+
+    // create 5 boxes of different colors and place them on the canvas
+    Crafty.e("Box").makeBox(160, 96, "#F00");
+    Crafty.e("Box").makeBox(240, 96, "#0F0");
+    Crafty.e("Box").makeBox(320, 96, "#FF0");
+    Crafty.e("Box").makeBox(400, 96, "#F0F");
+    Crafty.e("Box").makeBox(480, 96, "#0FF");
   })(jQuery)
