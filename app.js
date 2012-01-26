@@ -26,6 +26,10 @@
       var renderTimer = setInterval(function() {
         socket.emit('view', world.getView(player))
       }, 1000)
+
+      socket.on('move', function(data) {
+        console.log('move', data)
+      })
     })
   })()
 

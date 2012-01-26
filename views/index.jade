@@ -11,7 +11,7 @@ script
       , mapWidth = 100
       , mapHeight = 100
 
-    Crafty.init(viewportWidth * tileWidth, viewportHeight * tileHeight);
+    Crafty.init(viewportWidth * tileWidth, viewportHeight * tileHeight)
 
     Crafty.sprite(32, 'assets/tiles/grass-tiles-2-small.png', {
         grass0: [0, 0]
@@ -40,28 +40,84 @@ script
       , goblin: [18, 1]
       , mole: [10, 1] })
 
-    var player = Crafty.e('2D, Canvas, skeleton').
-          attr({ x: viewportWidth / 2 * tileWidth
+    var socket = io.connect('http://localhost')
+
+    Crafty.c('CustomControls', {
+      __move: { left: false, right: false, up: false, down: false }
+    , CustomControls: function() {
+        var move = this.__move
+
+        this
+          .bind('EnterFrame', function() {
+            var player = Crafty('Player')
+
+            if (typeof player != undefined) {
+              var x = player.attr('x') / tileWidth
+              var y = player.attr('y') / tileHeight
+
+              var dx = 0
+              var dy = 0
+
+              if (move.left) dx--
+              if (move.right) dx++
+              if (move.up) dy--
+              if (move.down) dy++
+
+              if (dx || dy) {
+                console.log('moving')
+                socket.emit('move', { x: x + dx, y: y + dy })
+              }
+            }
+          })
+          .bind('KeyDown', function(e) {
+            console.log(e)
+            move.right = move.left = move.down = move.up = false
+            if (e.keyCode === Crafty.keys.RIGHT_ARROW) move.right = true
+            if (e.keyCode === Crafty.keys.LEFT_ARROW) move.left = true
+            if (e.keyCode === Crafty.keys.UP_ARROW) move.up = true
+            if (e.keyCode === Crafty.keys.DOWN_ARROW) move.down = true
+            console.log(move.right, move.left, move.up, move.down)
+          })
+          .bind('KeyUp', function(e) {
+            console.log(e)
+            if (e.keyCode === Crafty.keys.RIGHT_ARROW) move.right = false
+            if (e.keyCode === Crafty.keys.LELF_ARROW) move.left = false
+            if (e.keyCode === Crafty.keys.UP_ARROW) move.up = false
+            if (e.keyCode === Crafty.keys.DOWN_ARROW) move.down = false
+          })
+      }
+    })
+
+    var player = Crafty.e('2D, Canvas, skeleton, Player, Controls, CustomControls')
+          .attr({ x: viewportWidth / 2 * tileWidth
                , y: viewportHeight / 2 * tileHeight
                , w: tileWidth
                , h: tileHeight})
-
-    var socket = io.connect('http://localhost')
+          .CustomControls()
 
     var currentX = -1, currentY = -1
 
     socket.on('view', function(view) {
+      console.log('view')
+
       if (view.x != currentX || view.y != currentY) {
+        currentX = view.x, currentY = view.y
+        console.log('moving everything')
+      }
+      /*
+
         var offsetX = -(view.x * tileWidth),
             offsetY = -(view.y * tileWidth)
 
-        console.log(view.x, view.y, offsetX, offsetY);
+        console.log(view.x, view.y, offsetX, offsetY)
 
         for (var y = 0; y < mapHeight; y++)
           for (var x = 0; x < mapWidth; x++)
             tiles[y * mapWidth + x].
                 attr({ x: x * tileWidth + offsetX
                      , y: y * tileHeight + offsetY })
+
+        console.log('done')
       }
 
       for (var y = 0; y < view.height; y++) {
@@ -75,6 +131,7 @@ script
           }
         }
       }
+      */
     })
 
   })(jQuery)
