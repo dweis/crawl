@@ -28,7 +28,7 @@
       }, 1000)
 
       socket.on('move', function(data) {
-        console.log('move', data)
+        player.setPosition(data.x, data.y)
       })
     })
   })()

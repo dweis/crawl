@@ -10,6 +10,8 @@ script
       , tileHeight = 32 // in pixels
       , mapWidth = 100
       , mapHeight = 100
+      , currentX = -1
+      , currentY = -1
 
     Crafty.init(viewportWidth * tileWidth, viewportHeight * tileHeight)
 
@@ -49,12 +51,7 @@ script
 
         this
           .bind('EnterFrame', function() {
-            var player = Crafty('Player')
-
             if (typeof player != undefined) {
-              var x = player.attr('x') / tileWidth
-              var y = player.attr('y') / tileHeight
-
               var dx = 0
               var dy = 0
 
@@ -64,24 +61,21 @@ script
               if (move.down) dy++
 
               if (dx || dy) {
-                console.log('moving')
-                socket.emit('move', { x: x + dx, y: y + dy })
+                socket.emit('move', { x: currentX + dx, y: currentY + dy })
+                move.right = move.left = move.down = move.up = false
               }
             }
           })
           .bind('KeyDown', function(e) {
-            console.log(e)
             move.right = move.left = move.down = move.up = false
             if (e.keyCode === Crafty.keys.RIGHT_ARROW) move.right = true
             if (e.keyCode === Crafty.keys.LEFT_ARROW) move.left = true
             if (e.keyCode === Crafty.keys.UP_ARROW) move.up = true
             if (e.keyCode === Crafty.keys.DOWN_ARROW) move.down = true
-            console.log(move.right, move.left, move.up, move.down)
           })
           .bind('KeyUp', function(e) {
-            console.log(e)
             if (e.keyCode === Crafty.keys.RIGHT_ARROW) move.right = false
-            if (e.keyCode === Crafty.keys.LELF_ARROW) move.left = false
+            if (e.keyCode === Crafty.keys.LEFT_ARROW) move.left = false
             if (e.keyCode === Crafty.keys.UP_ARROW) move.up = false
             if (e.keyCode === Crafty.keys.DOWN_ARROW) move.down = false
           })
@@ -95,31 +89,31 @@ script
                , h: tileHeight})
           .CustomControls()
 
-    var currentX = -1, currentY = -1
-
     socket.on('view', function(view) {
-      console.log('view')
-
       if (view.x != currentX || view.y != currentY) {
-        currentX = view.x, currentY = view.y
-        console.log('moving everything')
-      }
-      /*
+        // Move everything to account for new position
+        currentX = view.x
+        currentY = view.y
 
+        console.log('moving all')
         var offsetX = -(view.x * tileWidth),
             offsetY = -(view.y * tileWidth)
 
-        console.log(view.x, view.y, offsetX, offsetY)
-
         for (var y = 0; y < mapHeight; y++)
-          for (var x = 0; x < mapWidth; x++)
-            tiles[y * mapWidth + x].
+          for (var x = 0; x < mapWidth; x++) {
+            setTimeout(function(){
+              console.log(y * mapWidth + x)
+              /*
+              tiles[y * mapWidth + x].
                 attr({ x: x * tileWidth + offsetX
                      , y: y * tileHeight + offsetY })
-
-        console.log('done')
+                     */
+            }, 0)
+            console.log(tiles[ y * mapWidth + x ])
+          }
       }
 
+      /*
       for (var y = 0; y < view.height; y++) {
         for (var x = 0; x < view.width; x++) {
           var data = view.cells[y * view.width + x]
